@@ -1,0 +1,23 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Packaged skill files (built artifact)
+*.skill
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# Evals workspace (local testing)
+*-workspace/
+evals/
