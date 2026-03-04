@@ -1,5 +1,9 @@
 # Coding Standards Skill
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](CHANGELOG.md)
+
 A Claude Code skill that enforces consistent coding standards and agentic behavior guidelines across every project. Built for AI-assisted development workflows.
 
 > *Code should be safe to modify, easy to reason about, and boring to maintain. When in doubt, simplify.*
@@ -31,24 +35,25 @@ coding-standards/
 
 The skill uses progressive loading. The main SKILL.md contains the agentic behavior guidelines, code quality standards, and quick reference. The reference files are loaded only when Claude is working on testing, security, or git operations, keeping context usage efficient.
 
+## Requirements
+
+- **Claude Code CLI** (latest version recommended). Skills are supported in Claude Code 1.0+.
+- Works with Claude Code in the terminal, VS Code, and JetBrains IDE extensions.
+- No runtime dependencies. The skill is pure Markdown — no build step, no packages.
+
 ## Installation
 
-### Claude Code (global, recommended)
-
-Copy the skill folder to your global skills directory:
+### Global Install (recommended)
 
 ```bash
-# Clone the repo
 git clone https://github.com/vscarpenter/coding-standards-skill.git
-
-# Copy to global skills directory
 mkdir -p ~/.claude/skills
 cp -r coding-standards-skill/coding-standards ~/.claude/skills/coding-standards
 ```
 
-The skill is now available in every Claude Code session across all your projects.
+The skill is now active in every Claude Code session across all your projects.
 
-### Claude Code (project-level)
+### Project-Level Install
 
 Add the skill to a specific project so it travels with the repo:
 
@@ -64,28 +69,32 @@ git commit -m "chore: add coding-standards skill"
 
 Anyone who clones the repo gets the skill automatically.
 
-### Claude Code (via npx)
+### Claude Code (via Skill Installer)
+
+If you have the [`add-skill`](https://www.npmjs.com/package/add-skill) CLI installed:
 
 ```bash
 npx add-skill vscarpenter/coding-standards-skill
 ```
 
-### Claude.ai (upload)
-
-1. Download the `coding-standards.skill` file from the [Releases](https://github.com/vscarpenter/coding-standards-skill/releases) page.
-2. In Claude.ai, go to **Settings > Capabilities** and enable **Code execution and file creation**.
-3. Go to **Customize > Skills** and upload the `.skill` file.
-4. Toggle the skill on.
-
-For Team and Enterprise plans, organization Owners can provision the skill for all users through organization settings.
-
 ### Claude API
 
-Skills can also be used via the Claude API with the code execution tool. See the [Skills API Quickstart](https://docs.anthropic.com) for details.
+Skills can also be used via the Claude API with the code execution tool. See the [Anthropic documentation](https://docs.anthropic.com/en/docs/claude-code) for the latest details on skill support.
 
 ## Usage
 
 Once installed, the skill triggers automatically whenever Claude Code is writing, reviewing, refactoring, or committing code. No manual invocation required.
+
+### What It Looks Like
+
+With the skill active, Claude Code will:
+
+- **Read before writing** — explore your codebase structure, existing patterns, and conventions before making changes.
+- **Ask instead of assuming** — when requirements are ambiguous, Claude asks for clarification rather than guessing.
+- **Self-review before presenting** — check for dead code, debug statements, and naming consistency before showing you the result.
+- **Commit incrementally** — break work into logical commits rather than one giant changeset.
+
+Type `qcheck` after any implementation to get an 8-point senior engineer review. Type `qcode` to have Claude implement with full verification (tests, linting, type checking, and self-review).
 
 ### Verification Shortcuts
 
@@ -151,4 +160,4 @@ VP of Engineering | Cloud, Platform & DevOps
 
 ---
 
-*Document Version 6.0*
+*Version 1.0*

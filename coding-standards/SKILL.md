@@ -61,7 +61,7 @@ After each tool result, pause to evaluate before proceeding:
 - Are there edge cases or errors to address?
 - What is the root cause if results are unexpected?
 
-Use extended thinking to analyze results and plan your next action. If results are unexpected, diagnose the root cause before attempting fixes. Avoid repeated trial-and-error changes without understanding the underlying issue.
+Take time to analyze results and plan your next action deliberately. If results are unexpected, diagnose the root cause before attempting fixes. Avoid repeated trial-and-error changes without understanding the underlying issue.
 
 ### Solution Quality Requirements
 
@@ -121,7 +121,7 @@ After encountering a mistake or suboptimal solution, analyze what went wrong and
 ### Naming & Clarity
 
 - Use descriptive names; avoid generic terms like "data", "temp", or single letters
-- Functions should be 30 lines or fewer with single responsibility
+- Target 30 lines or fewer per function with single responsibility; anything over 40 lines is a red flag requiring refactor
 - Maximum 3 levels of nesting; use early returns
 - Comments explain WHY, not WHAT
 - Limit code files to approximately 350-400 lines; split by responsibility
@@ -288,4 +288,4 @@ For deeper guidance on specific topics, read the corresponding reference file:
 
 ---
 
-*Document Version 6.0 | Vinny Carpenter*
+*Document Version 1.0 | Vinny Carpenter*

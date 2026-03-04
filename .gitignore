@@ -8,6 +8,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Claude Code local settings
+.claude/
+
 # Packaged skill files (built artifact)
 *.skill
 
@@ -18,6 +21,5 @@ node_modules/
 __pycache__/
 *.pyc
 
-# Evals workspace (local testing)
+# Local testing workspaces
 *-workspace/
-evals/
