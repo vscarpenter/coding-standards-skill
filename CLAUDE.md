@@ -23,7 +23,7 @@ A Claude Code skill package that provides comprehensive coding standards and age
 
 ## Git Workflow
 
-- **Main branch is protected.** Direct pushes are blocked (including admins). All changes go through PRs.
+- **Main branch is protected.** All changes go through PRs. The repo owner (admin) can bypass review requirements; collaborators cannot.
 - **Squash merge only.** Merge commits and rebase merges are disabled. PR title becomes the commit title, PR body becomes the commit message.
 - **1 approving review required** before merging. Stale reviews are dismissed on new pushes.
 - **Linear history enforced.** No merge commits in the history.
