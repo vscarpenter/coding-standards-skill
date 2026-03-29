@@ -21,10 +21,21 @@ A Claude Code skill package that provides comprehensive coding standards and age
 - The document is organized into 10 numbered Parts. Preserve this structure when adding or modifying sections.
 - Conventional commit messages are used (e.g., `docs: ...`, `feat: ...`).
 
+## Git Workflow
+
+- **Main branch is protected.** Direct pushes are blocked (including admins). All changes go through PRs.
+- **Squash merge only.** Merge commits and rebase merges are disabled. PR title becomes the commit title, PR body becomes the commit message.
+- **1 approving review required** before merging. Stale reviews are dismissed on new pushes.
+- **Linear history enforced.** No merge commits in the history.
+- **Conversation resolution required.** All review threads must be resolved before merging.
+- **Branches auto-delete** after merge.
+- Conventional commit messages are used (e.g., `docs: ...`, `feat: ...`).
+
 ## Editing Workflow
 
 Since this is a docs-only repo, there are no build or lint commands. The workflow is:
-1. Edit the standards in SKILL.md (the source of truth with frontmatter).
-2. Mirror the body content to `coding-standards.md` (no frontmatter).
-3. Update README.md if installation steps, usage, or version changed.
-4. Commit with conventional commit format.
+1. Create a feature branch (`docs/...`, `feat/...`, etc.).
+2. Edit the standards in SKILL.md (the source of truth with frontmatter).
+3. Mirror the body content to `coding-standards.md` (no frontmatter).
+4. Update README.md if installation steps, usage, or version changed.
+5. Open a PR for review — direct pushes to main are not allowed.
