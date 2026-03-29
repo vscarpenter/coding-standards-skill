@@ -8,8 +8,10 @@ Thumbs.db
 *.swp
 *.swo
 
-# Claude Code local settings
-.claude/
+# Claude Code local settings (but track skill files and commands)
+.claude/*
+!.claude/skills/
+!.claude/commands/
 
 # Packaged skill files (built artifact)
 *.skill
