@@ -1,163 +1,136 @@
-# Coding Standards Skill
+# Coding Standards Skill for Claude Code
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](CHANGELOG.md)
+Comprehensive code standards and agentic behavior guidelines, packaged as a Claude Code skill with companion slash commands.
 
-A Claude Code skill that enforces consistent coding standards and agentic behavior guidelines across every project. Built for AI-assisted development workflows.
-
-> *Code should be safe to modify, easy to reason about, and boring to maintain. When in doubt, simplify.*
-
-## What It Does
-
-This skill gives Claude Code a comprehensive set of development standards that apply automatically to every coding session. Instead of dropping a `coding-standards.md` file into each repository, the skill loads these guidelines globally and yields to project-specific conventions (CLAUDE.md, CONTRIBUTING) when they exist.
-
-**Core capabilities:**
-
-- **Agentic behavior guidelines.** Read-before-write orientation, ambiguity handling, context management, incremental progress, and self-review before presenting code.
-- **Code quality standards.** Naming conventions, type safety, structure and abstraction rules, performance awareness, logging and observability patterns, and configuration management.
-- **Testing and error handling.** TDD approach, test isolation strategy, behavior-based test naming, and typed error handling patterns.
-- **Security standards.** Input validation, parameterized queries, least-privilege principles, secret management.
-- **Git workflow.** Conventional commits, branch naming, and the standard commit-push-PR workflow.
-- **Verification shortcuts.** Type `qcheck` for a skeptical code review or `qcode` to implement with full verification.
-- **Subagent delegation.** Guidelines for when and how to use subagents effectively, including model selection by task complexity.
-
-## Skill Structure
+## What's Included
 
 ```
-coding-standards/
-├── SKILL.md                    # Core standards (always loaded when triggered)
-└── references/
-    ├── testing.md              # Testing and error handling (loaded on demand)
-    ├── security.md             # Security standards (loaded on demand)
-    └── git-workflow.md         # Commit and branch conventions (loaded on demand)
+.claude/
+  skills/
+    coding-standards/
+      SKILL.md            # The skill (auto-loaded by Claude Code)
+  commands/
+    qspec.md              # /qspec — generate a feature spec
+    qcheck.md             # /qcheck — skeptical staff engineer review
+coding-standards.md       # Standalone reference copy (same content, no frontmatter)
 ```
 
-The skill uses progressive loading. The main SKILL.md contains the agentic behavior guidelines, code quality standards, and quick reference. The reference files are loaded only when Claude is working on testing, security, or git operations, keeping context usage efficient.
+## Install
 
-## Requirements
+### Option A: Copy into your project (recommended for teams)
 
-- **Claude Code CLI** (latest version recommended). Skills are supported in Claude Code 1.0+.
-- Works with Claude Code in the terminal, VS Code, and JetBrains IDE extensions.
-- No runtime dependencies. The skill is pure Markdown — no build step, no packages.
-
-## Installation
-
-### Global Install (recommended)
-
-```bash
-git clone https://github.com/vscarpenter/coding-standards-skill.git
-mkdir -p ~/.claude/skills
-cp -r coding-standards-skill/coding-standards ~/.claude/skills/coding-standards
-```
-
-The skill is now active in every Claude Code session across all your projects.
-
-### Project-Level Install
-
-Add the skill to a specific project so it travels with the repo:
+Copy the `.claude/` directory into your repo root and commit it. Every team member using Claude Code on this repo will automatically get the skill and commands.
 
 ```bash
 # From your project root
-mkdir -p .claude/skills
-cp -r /path/to/coding-standards-skill/coding-standards .claude/skills/coding-standards
+cp -r /path/to/CodingStandards/.claude .claude
 
-# Commit it
-git add .claude/skills/
-git commit -m "chore: add coding-standards skill"
+# Commit so the whole team gets it
+git add .claude/
+git commit -m "chore: add coding-standards skill and slash commands"
 ```
 
-Anyone who clones the repo gets the skill automatically.
+### Option B: Install globally (for personal use across all projects)
 
-### Claude Code (via Skill Installer)
-
-If you have the [`add-skill`](https://www.npmjs.com/package/add-skill) CLI installed:
+Copy into your user-level Claude config so the skill applies to every project.
 
 ```bash
-npx add-skill vscarpenter/coding-standards-skill
+# Skill
+mkdir -p ~/.claude/skills/coding-standards
+cp .claude/skills/coding-standards/SKILL.md ~/.claude/skills/coding-standards/SKILL.md
+
+# Slash commands
+mkdir -p ~/.claude/commands
+cp .claude/commands/qspec.md ~/.claude/commands/qspec.md
+cp .claude/commands/qcheck.md ~/.claude/commands/qcheck.md
 ```
-
-### Claude API
-
-Skills can also be used via the Claude API with the code execution tool. See the [Anthropic documentation](https://docs.anthropic.com/en/docs/claude-code) for the latest details on skill support.
 
 ## Usage
 
-Once installed, the skill triggers automatically whenever Claude Code is writing, reviewing, refactoring, or committing code. No manual invocation required.
+### The Skill (automatic)
 
-### What It Looks Like
+Once installed, the coding-standards skill triggers automatically whenever Claude Code is doing development work. There is nothing to invoke — Claude loads the skill and follows its guidelines for every coding task.
 
-With the skill active, Claude Code will:
+The skill covers:
+- **Agentic behavior** — codebase orientation, spec-driven development, verification-first workflow, session handoff, self-improvement loop, context management
+- **Code quality** — naming, types, structure, performance, accessibility, logging, dependency management
+- **Testing & errors** — TDD, test isolation, typed error handling
+- **Security** — input validation, parameterized queries, least privilege
+- **Git workflow** — conventional commits, branch naming, PR standards, code review norms
+- **Architecture** — ADRs for significant decisions
+- **Task management** — todo tracking, Definition of Done checklist, lessons learned
+- **Prompt engineering** — prompt structure, patterns, anti-patterns
+- **Claude Code tooling** — subagents, custom agents, hooks, skills, slash commands
 
-- **Read before writing** — explore your codebase structure, existing patterns, and conventions before making changes.
-- **Ask instead of assuming** — when requirements are ambiguous, Claude asks for clarification rather than guessing.
-- **Self-review before presenting** — check for dead code, debug statements, and naming consistency before showing you the result.
-- **Commit incrementally** — break work into logical commits rather than one giant changeset.
+### Slash Commands (on demand)
 
-Type `qcheck` after any implementation to get an 8-point senior engineer review. Type `qcode` to have Claude implement with full verification (tests, linting, type checking, and self-review).
+**`/qspec`** — Generate a spec for a feature before writing any code.
 
-### Verification Shortcuts
+```
+> /qspec
+```
 
-**`qcheck`** — Runs a skeptical senior engineer review against every major code change:
+Claude will produce a structured spec with goal, inputs/outputs, constraints, edge cases, out of scope, and acceptance criteria. It saves to `tasks/spec.md` and waits for your approval before implementing.
 
-1. Does this follow our coding standards?
-2. Are there comprehensive tests?
-3. Is error handling adequate?
-4. Does this maintain existing patterns?
-5. Are there any security concerns?
-6. Is the code maintainable and readable?
-7. Are types properly annotated?
-8. Is logging/observability adequate for production?
+**`/qcheck`** — Run a skeptical staff engineer review on all changed files.
 
-**`qcode`** — Implements with full verification:
+```
+> /qcheck
+```
 
-- All new tests pass
-- Existing tests still pass
-- Linting/formatting tools run
-- Type checking passes
-- Code follows established patterns
-- Self-review completed (no dead code, debug statements, or TODOs)
+Claude reviews the changeset against the full coding standards, checking tests, error handling, types, observability, security, and the Definition of Done. Returns a structured list of blocking issues vs. suggestions.
 
-### Key Principles
+## Customizing
 
-The skill enforces these priorities in order:
+### Add project-specific rules
 
-1. **Simplicity over cleverness.** Prefer clarity to novelty.
-2. **Build small, iterate fast.** Deliver working code before optimizing.
-3. **Code for humans.** Readable by a junior engineer without scrolling to other files.
-4. **Prefer boring tech.** Stability over hype.
-5. **Standard lib over external.** Use the language's standard library unless it requires more than 2x the code.
+Add a `CLAUDE.md` to your project root for rules that are specific to your codebase. The skill's Self-Improvement Loop will prompt Claude to update `CLAUDE.md` after every correction, so it grows organically over time.
 
-### Project-Specific Overrides
+### Configure hooks
 
-The skill respects a clear hierarchy: **project-specific files take priority.** If a repository has its own CLAUDE.md, CONTRIBUTING, or style guide, the skill defers to those for project-specific conventions and governs everything else.
+The skill recommends three hooks. Add these to your `.claude/settings.json`:
 
-## Customization
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx biome format --write $CLAUDE_FILE_PATH || true"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat tasks/todo.md tasks/lessons.md 2>/dev/null || echo 'No task files found.'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
-Fork this repo and modify the skill to match your team's standards. Key files to customize:
+Replace `npx biome format` with your project's formatter (`prettier`, `black`, `gofmt`, etc.).
 
-- **SKILL.md** — Core principles, naming rules, function length limits, and the verification shortcuts.
-- **references/testing.md** — Test coverage targets, isolation strategy, and mocking preferences.
-- **references/security.md** — Security requirements specific to your domain.
-- **references/git-workflow.md** — Commit types, branch naming format, and PR workflow.
+### Add custom agents
 
-## Contributing
+Create reusable agent definitions in `.claude/agents/`:
 
-1. Fork the repository.
-2. Create a feature branch: `feat/your-improvement`
-3. Follow the coding standards defined in this skill (naturally).
-4. Submit a pull request with a clear description of the change.
+```bash
+mkdir -p .claude/agents
+```
 
-## License
+See the Subagents section of the skill for examples and best practices.
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+## Version
 
-## Author
-
-**Vinny Carpenter**
-VP of Engineering | Cloud, Platform & DevOps
-[vinny.dev](https://vinny.dev) | [LinkedIn](https://www.linkedin.com/in/vinnycarpenter/) | [GitHub](https://github.com/vscarpenter)
-
----
-
-*Version 1.0*
+Current: **10.0** | Author: Vinny Carpenter

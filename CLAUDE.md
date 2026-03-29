@@ -1,30 +1,30 @@
-# CLAUDE.md — Coding Standards Skill
+# CLAUDE.md
 
-This repository contains a Claude Code skill for enforcing coding standards. When contributing, follow the standards defined in the skill itself.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Structure
+## What This Repo Is
 
-- `coding-standards/SKILL.md` — Core skill file (agentic guidelines + code quality standards)
-- `coding-standards/references/` — Progressive-load reference files (testing, security, git workflow)
-- `README.md` — Public-facing documentation and installation instructions
-- `CHANGELOG.md` — Version history following Keep a Changelog format
+A Claude Code skill package that provides comprehensive coding standards and agentic behavior guidelines. There is no application code, build system, or test suite — the deliverables are markdown files.
 
-## Contributing Guidelines
+## Repository Structure
 
-- All content is Markdown. There is no build step or runtime code.
-- Keep SKILL.md under 300 lines. Move detailed guidance to reference files.
-- Reference files should be self-contained and loadable independently.
-- Follow conventional commit format for all commits (see `references/git-workflow.md`).
-- Test changes by installing the skill locally (`~/.claude/skills/coding-standards`) and verifying behavior in a Claude Code session.
+- `.claude/skills/coding-standards/SKILL.md` — The skill definition (YAML frontmatter + full standards). This is auto-loaded by Claude Code when installed in a project.
+- `.claude/commands/qspec.md` — `/qspec` slash command: generates a feature spec.
+- `.claude/commands/qcheck.md` — `/qcheck` slash command: skeptical staff engineer review.
+- `coding-standards.md` — Standalone reference copy of the same content as SKILL.md, without YAML frontmatter. Kept in sync manually.
+- `README.md` — Installation and usage instructions for consumers.
 
-## Style
+## Key Conventions
 
-- Use imperative voice for guidelines ("Validate inputs" not "Inputs should be validated").
-- Be specific and actionable. Avoid vague advice like "write clean code."
-- Every guideline should be something a developer can verify in a code review.
-- Prefer bullet lists over prose for scanability.
+- **SKILL.md and coding-standards.md must stay in sync.** SKILL.md has YAML frontmatter (`name`, `description`, `version`, `author`); `coding-standards.md` is the same body content without it. When editing standards, update both files.
+- **Version is tracked in two places:** the `version` field in SKILL.md frontmatter and the "Version" line at the bottom of README.md. Bump both when releasing.
+- The document is organized into 10 numbered Parts. Preserve this structure when adding or modifying sections.
+- Conventional commit messages are used (e.g., `docs: ...`, `feat: ...`).
 
-## Version Policy
+## Editing Workflow
 
-- Use semantic versioning. Bump the version in CHANGELOG.md, SKILL.md footer, and README.md footer.
-- Breaking changes to the skill format or removed guidelines require a major version bump.
+Since this is a docs-only repo, there are no build or lint commands. The workflow is:
+1. Edit the standards in SKILL.md (the source of truth with frontmatter).
+2. Mirror the body content to `coding-standards.md` (no frontmatter).
+3. Update README.md if installation steps, usage, or version changed.
+4. Commit with conventional commit format.
