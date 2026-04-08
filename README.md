@@ -1,6 +1,6 @@
 # Coding Standards Skill for Claude Code
 
-Comprehensive code standards and agentic behavior guidelines, packaged as a Claude Code skill with companion slash commands.
+Comprehensive code standards and agentic behavior guidelines, packaged as a Claude Code skill with companion slash commands. Version 10.1 promotes red/green/refactor TDD to the default workflow and adds agentic guidance for parallel tool execution, bash-first multi-step ops, and supply-chain vigilance.
 
 ## What's Included
 
@@ -10,39 +10,40 @@ Comprehensive code standards and agentic behavior guidelines, packaged as a Clau
     coding-standards/
       SKILL.md            # The skill (auto-loaded by Claude Code)
   commands/
-    qspec.md              # /qspec — generate a feature spec
+    qspec.md              # /qspec  — generate a feature spec + test stubs
     qcheck.md             # /qcheck — skeptical staff engineer review
+    tdd.md                # /tdd    — start a red/green/refactor cycle
 coding-standards.md       # Standalone reference copy (same content, no frontmatter)
 ```
 
 ## Install
 
-### Option A: Copy into your project (recommended for teams)
+The repo is structured so you can drop the `.claude/` directory straight into any project or into your user config. Pick one:
 
-Copy the `.claude/` directory into your repo root and commit it. Every team member using Claude Code on this repo will automatically get the skill and commands.
+### Option A: Global install (one-liner, recommended for solo devs)
+
+Applies the skill and commands to every project you open with Claude Code.
 
 ```bash
-# From your project root
-cp -r /path/to/CodingStandards/.claude .claude
-
-# Commit so the whole team gets it
-git add .claude/
-git commit -m "chore: add coding-standards skill and slash commands"
+git clone --depth 1 https://github.com/vscarpenter/coding-standards-skill.git /tmp/cs \
+  && mkdir -p ~/.claude/skills ~/.claude/commands \
+  && cp -r /tmp/cs/.claude/skills/coding-standards ~/.claude/skills/ \
+  && cp /tmp/cs/.claude/commands/*.md ~/.claude/commands/ \
+  && rm -rf /tmp/cs
 ```
 
-### Option B: Install globally (for personal use across all projects)
+To update later, rerun the same command.
 
-Copy into your user-level Claude config so the skill applies to every project.
+### Option B: Per-project install (recommended for teams)
+
+Commit the skill into your repo so every teammate using Claude Code gets it automatically.
 
 ```bash
-# Skill
-mkdir -p ~/.claude/skills/coding-standards
-cp .claude/skills/coding-standards/SKILL.md ~/.claude/skills/coding-standards/SKILL.md
-
-# Slash commands
-mkdir -p ~/.claude/commands
-cp .claude/commands/qspec.md ~/.claude/commands/qspec.md
-cp .claude/commands/qcheck.md ~/.claude/commands/qcheck.md
+git clone --depth 1 https://github.com/vscarpenter/coding-standards-skill.git /tmp/cs \
+  && cp -r /tmp/cs/.claude . \
+  && rm -rf /tmp/cs \
+  && git add .claude/ \
+  && git commit -m "chore: add coding-standards skill and slash commands"
 ```
 
 ## Usage
@@ -52,43 +53,34 @@ cp .claude/commands/qcheck.md ~/.claude/commands/qcheck.md
 Once installed, the coding-standards skill triggers automatically whenever Claude Code is doing development work. There is nothing to invoke — Claude loads the skill and follows its guidelines for every coding task.
 
 The skill covers:
-- **Agentic behavior** — codebase orientation, spec-driven development, verification-first workflow, session handoff, self-improvement loop, context management
+- **Agentic behavior** — codebase orientation, spec-driven development, verification-first workflow, parallel tool execution, bash-first multi-step ops, outcome-defined task exits, session handoff, self-improvement loop, context management
+- **TDD as default** — red/green/refactor is mandatory for non-trivial logic; acceptance criteria become the first failing tests
 - **Code quality** — naming, types, structure, performance, accessibility, logging, dependency management
-- **Testing & errors** — TDD, test isolation, typed error handling
-- **Security** — input validation, parameterized queries, least privilege
+- **Testing & errors** — test isolation, typed error handling, behavior-based test names, Arrange-Act-Assert
+- **Security & supply chain** — input validation, parameterized queries, least privilege, auditing AI-installed dependencies, lockfile discipline
 - **Git workflow** — conventional commits, branch naming, PR standards, code review norms
 - **Architecture** — ADRs for significant decisions
-- **Task management** — todo tracking, Definition of Done checklist, lessons learned
+- **Task management** — todo tracking, Definition of Done (with red-before-green and per-AC coverage gates), lessons learned
 - **Prompt engineering** — prompt structure, patterns, anti-patterns
-- **Claude Code tooling** — subagents, custom agents, hooks, skills, slash commands
+- **Claude Code tooling** — subagents (including a `tdd-enforcer` example), custom agents, hooks, skills, slash commands
 
 ### Slash Commands (on demand)
 
-**`/qspec`** — Generate a spec for a feature before writing any code.
+**`/qspec`** — Generate a spec for a feature before writing any code. Produces goal, inputs/outputs, constraints, edge cases, acceptance criteria, **and empty test stubs** that map to each criterion. Saves to `tasks/spec.md` and waits for approval before implementing.
 
-```
-> /qspec
-```
+**`/tdd`** — Start a red/green/refactor cycle. Claude writes a failing test first, confirms it fails for the right reason, then writes the minimal implementation to make it pass, then refactors.
 
-Claude will produce a structured spec with goal, inputs/outputs, constraints, edge cases, out of scope, and acceptance criteria. It saves to `tasks/spec.md` and waits for your approval before implementing.
-
-**`/qcheck`** — Run a skeptical staff engineer review on all changed files.
-
-```
-> /qcheck
-```
-
-Claude reviews the changeset against the full coding standards, checking tests, error handling, types, observability, security, and the Definition of Done. Returns a structured list of blocking issues vs. suggestions.
+**`/qcheck`** — Skeptical staff engineer review of all changed files. Checks tests, error handling, types, observability, security, and the Definition of Done. Also flags logic that appears to have been implemented before its tests were written.
 
 ## Customizing
 
 ### Add project-specific rules
 
-Add a `CLAUDE.md` to your project root for rules that are specific to your codebase. The skill's Self-Improvement Loop will prompt Claude to update `CLAUDE.md` after every correction, so it grows organically over time.
+Add a `CLAUDE.md` to your project root for rules specific to your codebase. The skill's Self-Improvement Loop prompts Claude to update `CLAUDE.md` after every correction, so it grows organically over time.
 
 ### Configure hooks
 
-The skill recommends three hooks. Add these to your `.claude/settings.json`:
+The skill recommends formatting, context-handoff, and verification-gate hooks. Add these to your `.claude/settings.json`:
 
 ```json
 {
@@ -114,22 +106,33 @@ The skill recommends three hooks. Add these to your `.claude/settings.json`:
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm test -- --passWithNoTests && npx tsc --noEmit || exit 1"
+          }
+        ]
+      }
     ]
   }
 }
 ```
 
-Replace `npx biome format` with your project's formatter (`prettier`, `black`, `gofmt`, etc.).
+Replace the formatter and test/type-check commands with your project's equivalents (`prettier`, `black`, `gofmt`, `pytest`, `go test`, etc.). The `Stop` hook is the verification gate that blocks Claude from marking a task complete until tests and type checks pass.
 
 ### Add custom agents
 
-Create reusable agent definitions in `.claude/agents/`:
+Create reusable agent definitions in `.claude/agents/`. The skill includes a `tdd-enforcer` example that verifies red/green cycles were followed on a changeset.
 
 ```bash
 mkdir -p .claude/agents
 ```
 
-See the Subagents section of the skill for examples and best practices.
+See the Subagents section of the skill for the full example and best practices.
 
 ## Version
 
