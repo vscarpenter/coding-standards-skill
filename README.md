@@ -133,4 +133,4 @@ See the Subagents section of the skill for examples and best practices.
 
 ## Version
 
-Current: **10.0** | Author: Vinny Carpenter
+Current: **10.1** | Author: Vinny Carpenter
