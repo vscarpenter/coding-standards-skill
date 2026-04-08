@@ -37,6 +37,7 @@ A minimal spec includes:
 - **Edge Cases:** Empty inputs, nulls, concurrent calls, failure modes.
 - **Out of Scope:** Explicit list of what this version does not handle.
 - **Acceptance Criteria:** Checkable statements that prove the implementation is correct.
+- **Test Stubs:** Draft test function names (empty bodies) that map to each acceptance criterion. These ship with the spec, before any implementation begins. Spec approval and test skeleton approval are the same step.
 
 > **Rule:** Code written without a spec is a guess. A spec written after the code is a rationalization. Write it first.
 
@@ -51,6 +52,33 @@ When requirements are unclear or incomplete:
 
 > **Never:** Silently interpret ambiguous requirements and build an entire solution on an assumption that could be wrong.
 
+### Parallel Tool Execution
+
+Claude Code fires tool calls in parallel only when the prompt signals that tasks are independent. Ambiguous prompts default to sequential execution, which wastes significant time on large codebases.
+
+**Pattern: Signal independence explicitly.**
+
+Instead of:
+> "Read the auth module, then read the payment module, then compare them."
+
+Use:
+> "Read the auth module and the payment module simultaneously, then compare their error handling patterns."
+
+Apply this pattern when scanning multiple files, running tests alongside linting, or fetching multiple log sources at once. The wall-clock difference on large codebases is significant.
+
+> **Rule:** If two tool calls do not depend on each other's output, say so in the prompt. Claude Code will batch them.
+
+### Bash-First for Multi-Step Operations
+
+The bash tool is the most capable in Claude Code's toolbox. For tasks involving multiple files, prefer bash operations over chaining individual read/write tool calls. A single `grep`, `find`, or `sed` across a directory is faster and cleaner than reading files one at a time.
+
+- Use `grep` or `ripgrep` to search across files instead of reading them individually.
+- Use `git log`, `git diff`, and `git status` directly rather than asking Claude to summarize manually.
+- For bulk refactors, instruct Claude to use `sed` or `awk` on multiple files in one pass.
+- For long-running bash operations, set explicit timeouts and expected durations upfront. Claude defaults to blocking-avoidance behavior; if a command is expected to run for 30 seconds, say so.
+
+> **Rule:** Prefer one bash command over three chained tool calls. It is faster, cleaner, and produces a more focused context trail.
+
 ### Context Management & Sustained Work
 
 For lengthy tasks, YOU MUST follow these requirements:
@@ -62,6 +90,18 @@ For lengthy tasks, YOU MUST follow these requirements:
 5. Never leave significant work uncommitted.
 
 > **Critical:** If you find yourself 80% through context with major uncommitted work, stop adding features and commit immediately.
+
+**Define tasks by outcome, not process.**
+
+Claude Code's agentic loop exits on three signals: an explicit completion signal, an unrecoverable error, or hitting the turn limit. Without a clear outcome definition, it loops.
+
+Instead of:
+> "Keep checking the logs until you find the error."
+
+Use:
+> "Check the last 100 lines of logs. If you find an error, explain the root cause and propose one fix. If no errors are found, say so and stop."
+
+Every multi-step task must have a stated "done" condition Claude can recognize autonomously.
 
 **Compaction Directive:** When compacting, always preserve the full list of modified files, current task status, test commands, and next steps. Do not discard working state during summarization.
 
@@ -138,7 +178,7 @@ Verification is not an afterthought; it is the single most important factor in o
 
 1. **Define the verification method before coding.** For every non-trivial task, state upfront how correctness will be proven: a test suite, a bash command, a simulator, a browser check, or a diff against expected output.
 2. **Match verification to the domain.** Different work requires different proof:
-   - **Backend logic:** Unit and integration tests, run automatically after each change.
+   - **Backend logic:** For backend logic and business rules, the verification method IS the test suite, and it is written first via the red/green/refactor protocol. Defining "how you will verify" and "writing the failing test" are the same step.
    - **API changes:** curl/httpie commands or integration tests that exercise the endpoint.
    - **Frontend/UI:** Browser testing (e.g., Claude Chrome extension), screenshot comparison, or accessibility audit.
    - **Data pipelines:** Row-count checks, sample-output diffs, schema validation.
@@ -173,6 +213,8 @@ Before presenting code or marking a task as complete, perform a quick self-revie
 5. Ensure the code compiles/runs and tests pass.
 6. Ask yourself: "Would a staff engineer approve this?" If the answer is uncertain, keep improving.
 
+**File edit failures:** Claude Code edits files via exact string matching, not full rewrites. If an edit fails or produces unexpected results, read the full file first, then apply the targeted change. For complex multi-part edits, break changes into smaller, targeted replacements rather than one large substitution.
+
 > **Rule:** Never present code you have not re-read. A 30-second review catches the majority of avoidable mistakes.
 
 ### Autonomous Bug Fixing
@@ -195,6 +237,8 @@ Build incrementally to ensure quality:
 - Run the full test suite after every file modification and fix failures before proceeding.
 - Do not assume code is correct without execution.
 - If tests fail, analyze the failure and diagnose root cause before making changes.
+
+> **Rule:** Each increment is one red/green/refactor cycle. Do not write a second function before the first one has a passing test. Incrementalism without TDD is just small batches of unverified code.
 
 ---
 
@@ -323,6 +367,7 @@ For subagent patterns your team uses repeatedly, define them as reusable agent f
     build-validator.md    # Runs build + tests, reports failures
     code-simplifier.md    # Reviews code for unnecessary complexity
     security-reviewer.md  # Scans for common vulnerability patterns
+    tdd-enforcer.md       # Verifies red/green cycle was followed
     verify-app.md         # End-to-end verification instructions
 ```
 
@@ -336,6 +381,22 @@ isolation: worktree
 Review all changed files for unnecessary complexity, duplicated logic,
 and opportunities to reuse existing utilities. Do not rewrite code;
 return a structured list of findings with file, line, and recommendation.
+```
+
+Example agent definition (`.claude/agents/tdd-enforcer.md`):
+```yaml
+---
+name: tdd-enforcer
+model: sonnet
+---
+You are a strict TDD reviewer. Given a PR diff or a set of changed files:
+1. Verify that every new function or method has a corresponding test.
+2. Verify that tests appear to have been written before implementation
+   (check git history if available).
+3. Flag any logic with no test coverage.
+4. Return a structured report: covered behaviors, uncovered behaviors,
+   and suspected test-after patterns.
+Do not suggest fixes; report findings only.
 ```
 
 **Key practices:**
@@ -389,7 +450,25 @@ When Claude compresses its conversation context, critical instructions can be lo
 ```
 
 **Stop Hook — Verification Gate for Long-Running Tasks:**
-For autonomous, long-running work, use a Stop hook to run deterministic checks (test suite, linter, type checker) before Claude declares a task complete. This ensures Claude cannot mark work as done without passing the verification gate.
+For autonomous, long-running work, use a Stop hook to run deterministic checks (test suite, linter, type checker) before Claude declares a task complete. This ensures Claude cannot mark work as done without passing the verification gate:
+
+```json
+"hooks": {
+  "Stop": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "npm test -- --passWithNoTests && npx tsc --noEmit || exit 1"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Replace with your project's test runner and type checker. The `exit 1` blocks Claude from completing until checks pass.
 
 > **Rule:** If a standard can be enforced by a hook, it should be. Human discipline is a backup, not the primary mechanism.
 
@@ -399,11 +478,29 @@ For autonomous, long-running work, use a Stop hook to run deterministic checks (
 
 ### Testing Standards
 
-- Write tests BEFORE implementation when feasible (TDD approach).
-- Test all public APIs and critical paths (target approximately 80% coverage).
-- Use clear behavior-based test names (e.g., `should_return_404_when_user_not_found`).
-- Follow Arrange-Act-Assert pattern.
-- Include positive and negative cases.
+**Red/Green/Refactor is the default workflow. It is not optional.**
+
+The TDD cycle applies to every non-trivial piece of logic:
+
+1. **Red:** Write a failing test that describes the desired behavior. Run it. Confirm it fails for the right reason, not due to a syntax error or missing import.
+2. **Green:** Write the minimal implementation that makes the test pass. No more, no less.
+3. **Refactor:** Clean up the implementation without breaking the test. Extract duplication, improve naming, simplify logic.
+4. **Repeat:** Each new behavior gets its own red/green/refactor cycle before moving on.
+
+> **Rule:** If you cannot write a failing test first, you do not yet understand the requirement well enough to implement it. Stop and clarify.
+
+**Acceptance criteria from the spec ARE the first test cases.** When writing `tasks/spec.md`, each acceptance criterion maps directly to one or more test cases. Claude should draft the test signatures (empty test stubs with behavior-based names) as part of spec finalization, before any implementation begins.
+
+**Coverage targets:**
+- Target approximately 80% line coverage, but coverage is a floor, not a goal.
+- 100% coverage of all acceptance criteria from the spec is required.
+- All edge cases defined in the spec must have explicit tests.
+
+**Test naming:** Use behavior-based names that read like sentences: `should_return_404_when_user_not_found`, not `test_get_user`.
+
+**Arrange-Act-Assert:** Follow this pattern in every test. One assertion concept per test.
+
+**Include both positive and negative cases.**
 
 ### Test Isolation & Strategy
 
@@ -432,6 +529,18 @@ For autonomous, long-running work, use a Stop hook to run deterministic checks (
 - Apply least-privilege principles.
 - Never commit secrets; rotate regularly.
 - Keep dependencies patched and scanned.
+
+### Supply-Chain Vigilance for AI-Assisted Development
+
+AI coding tools introduce supply-chain risk vectors that did not exist in manual workflows. When Claude Code installs, updates, or suggests new dependencies, treat those changes with the same scrutiny as any other code change.
+
+- Audit every new dependency immediately: check maintenance status, download trends, and known CVEs before accepting it.
+- Lock versions in the lockfile. Floating ranges are especially dangerous when Claude is auto-installing packages during agentic sessions.
+- After any Claude Code version update, scan lockfiles for unexpected new transitive dependencies.
+- If Claude Code is operating in an agentic mode with npm/pip access, scope its file-system and network permissions to the project directory and review its dependency changes before accepting them.
+- Run `npm audit` or `pip-audit` as part of the PostToolUse hook lifecycle, not just in CI. Catch supply-chain issues before they reach the pipeline.
+
+> **Rule:** Claude Code can install packages autonomously. Every package it adds is your team's responsibility. Review first, accept second.
 
 ---
 
@@ -488,7 +597,8 @@ Use the format: `<type>/<short-description>` (e.g., `feat/oauth-login`, `fix/nul
 3. Does this introduce security, performance, or observability regressions?
 4. Is the code readable without the author explaining it?
 5. Are tests present, meaningful, and not testing implementation details?
-6. Are new dependencies justified?
+6. Were tests written before the implementation? (Check commit order if in doubt.)
+7. Are new dependencies justified?
 
 **Review norms:**
 - Respond to review requests within one business day.
@@ -552,6 +662,9 @@ A task is not done when the code works. It is done when ALL of the following are
 **Correctness & Quality:**
 - [ ] The implementation matches the spec or ticket acceptance criteria.
 - [ ] Verification method was defined before coding and passes autonomously.
+- [ ] Tests were written BEFORE implementation (red confirmed before green).
+- [ ] Each acceptance criterion from the spec has at least one corresponding passing test.
+- [ ] Refactor step was completed after green (no dead code, no over-fit logic).
 - [ ] All new and existing tests pass; test suite runs after every modification.
 - [ ] Linting, formatting, and type checking pass with no suppressions.
 - [ ] Type annotations present on all function signatures.
@@ -562,6 +675,7 @@ A task is not done when the code works. It is done when ALL of the following are
 - [ ] Self-explanatory names; understandable in 5 minutes without a walkthrough.
 - [ ] Comprehensive error handling with typed errors; not just the happy path.
 - [ ] "Would a staff engineer approve this?" answered with confidence.
+- [ ] Complex file edits were preceded by a full file read to ensure accurate string matching.
 
 **Documentation & Process:**
 - [ ] PR description is complete and reviewable without a verbal walkthrough.
@@ -570,7 +684,7 @@ A task is not done when the code works. It is done when ALL of the following are
 - [ ] Observability is adequate: structured logging covers the new path, errors surface correctly.
 - [ ] If an ADR was warranted, it has been written.
 - [ ] If a lesson was learned, `tasks/lessons.md` and/or `CLAUDE.md` have been updated.
-- [ ] If new dependencies were added, they have been audited.
+- [ ] If new dependencies were added, they have been audited and are locked in the lockfile.
 - [ ] If feature flags were introduced, they are named, owned, and have a removal date.
 - [ ] If frontend work, accessibility baseline is met.
 
@@ -600,7 +714,9 @@ You are a [role]. I need a spec for [feature].
 Context: [relevant background]
 Constraints: [non-negotiables]
 Anti-goals: [what this should not do]
-Output: A spec in markdown with Goal, Inputs/Outputs, Constraints, Edge Cases, and Acceptance Criteria.
+Output: A spec in markdown with Goal, Inputs/Outputs, Constraints, Edge Cases,
+        Acceptance Criteria, and Test Stubs (empty test function signatures
+        mapping to each acceptance criterion).
 ```
 
 **Implementation prompt:** Use after spec approval.
@@ -608,6 +724,8 @@ Output: A spec in markdown with Goal, Inputs/Outputs, Constraints, Edge Cases, a
 Implement [feature] per this spec: [paste spec]
 Use [language/framework]. Follow the existing patterns in [file or module].
 Do not modify [out-of-scope files].
+Follow red/green/refactor: write the failing test first, confirm it fails,
+then write the minimal implementation to pass.
 Return only the implementation with inline comments explaining non-obvious decisions.
 ```
 
@@ -615,6 +733,7 @@ Return only the implementation with inline comments explaining non-obvious decis
 ```
 Review this code as a skeptical staff engineer.
 Flag: security issues, missing error handling, test gaps, readability problems.
+Also flag: any logic that appears to have been implemented before its tests were written.
 Distinguish blocking issues from suggestions.
 Do not rewrite the code; return a structured list of findings.
 ```
@@ -626,6 +745,17 @@ Here is the relevant implementation: [paste code]
 Diagnose the root cause. Do not guess. Propose one fix with an explanation.
 ```
 
+**Architecture/tradeoff prompt:** Use when deeper reasoning is needed before code is written.
+```
+Before writing any code, analyze [problem area] and identify:
+  1. Three implementation approaches with their tradeoffs.
+  2. Risks and edge cases for each.
+  3. Your recommended approach and why.
+Confirm before proceeding with implementation.
+```
+
+Framing tasks as analysis or tradeoff evaluation engages extended reasoning. Operational prompts ("add error handling to this function, follow the existing pattern") should stay tight and direct. Match prompt style to task complexity.
+
 ### Prompt Anti-Patterns
 
 Avoid these patterns; they produce lower-quality outputs:
@@ -635,6 +765,9 @@ Avoid these patterns; they produce lower-quality outputs:
 - **No anti-goals:** Without them, the model expands scope by default.
 - **Stacked goals:** One prompt asking for spec, implementation, tests, and documentation simultaneously.
 - **Implicit context:** Assuming the model knows your project structure, conventions, or prior decisions without stating them.
+- **Conversational framing on operational tasks:** "Could you please help me understand..." invites verbose responses. For operational asks, write direct commands: "Explain what this function does. List any issues." Claude mirrors the register of its prompts.
+- **Process-defined tasks without exit conditions:** "Keep checking until you find the issue" loops indefinitely. Define outcomes: "Check X. If Y, do Z. If not, report and stop."
+- **Skipping TDD in the prompt:** Not specifying red/green/refactor on implementation prompts invites Claude to write code first and tests after. State it explicitly.
 
 > **Rule:** A prompt is a spec for the model. Apply the same rigor you would to a spec for code.
 
@@ -660,7 +793,22 @@ If you do something more than once a day, it should be a skill or a slash comman
 - Use the `/simplify` pattern after implementation: append a quality-review command to any prompt to run parallel agents that check for reuse, quality, and efficiency in one pass.
 
 **Companion slash commands:**
-This skill ships with `/qspec` (generate a spec) and `/qcheck` (skeptical code review) in `.claude/commands/`. These are the formalized, version-controlled replacements for inline prompt shortcuts.
+This skill ships with `/qspec` (generate a spec), `/qcheck` (skeptical code review), and `/tdd` (start a red/green/refactor cycle) in `.claude/commands/`. These are the formalized, version-controlled replacements for inline prompt shortcuts.
+
+### `/tdd` Slash Command
+
+Start a red/green/refactor cycle for a named behavior.
+
+**Usage:** `/tdd <behavior description>`
+
+Claude will:
+1. Write a failing test stub for the described behavior.
+2. Confirm the test fails for the right reason (not a syntax error or import issue).
+3. Pause for your approval of the test before writing any implementation.
+4. Implement the minimum code to go green.
+5. Propose a refactor pass and await confirmation before committing.
+
+This command enforces the cycle and prevents skipping straight to implementation. Use it at the start of any non-trivial behavior to anchor the work in a verified contract.
 
 ---
 
@@ -672,9 +820,10 @@ Use this template when requesting features:
 
 ```
 Build [feature] that:
+  - Follows red/green/refactor: write failing tests first
   - Uses clear naming
   - Validates inputs, handles errors
-  - Includes tests for core cases
+  - Tests written before implementation (TDD)
   - Follows [framework] conventions
   - Avoids premature abstraction
   - Keeps functions <30 lines
@@ -709,6 +858,17 @@ Build [feature] that:
 - No verification method defined before starting implementation
 - Ad-hoc subagent prompts instead of reusable agent definitions for repeated patterns
 - Standards enforced by discipline alone when a hook could automate them
+- Sequential tool calls for tasks that are clearly independent
+- Multi-step file operations handled by chained reads instead of a single bash command
+- Complex file edits attempted without reading current file state first
+- Agentic tasks defined as a process without a stated outcome condition
+- New dependencies added by Claude in agentic mode without review and lockfile verification
+- Implementation written before any tests existed for non-trivial logic
+- Refactor step skipped after reaching green (technical debt deposited immediately)
+- Test written after implementation to hit a coverage target, not to drive behavior
+- Failing test committed without a corresponding implementation in the same session
+- Acceptance criteria defined in spec but not reflected in any test case
+- Skipping red/green confirmation ("the test would have failed, trust me")
 
 ### Guiding Principle
 
@@ -716,4 +876,4 @@ Build [feature] that:
 
 ---
 
-*Document Version 10.0 | Vinny Carpenter*
+*Document Version 12.0 | Vinny Carpenter*
