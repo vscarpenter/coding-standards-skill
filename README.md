@@ -1,6 +1,6 @@
 # Coding Standards Skill for Claude Code
 
-Comprehensive code standards and agentic behavior guidelines, packaged as a Claude Code skill with companion slash commands. Version 10.1 promotes red/green/refactor TDD to the default workflow and adds agentic guidance for parallel tool execution, bash-first multi-step ops, and supply-chain vigilance.
+Comprehensive code standards and agentic behavior guidelines, packaged as a Claude Code skill with companion slash commands. Version 14.0 is tuned for Claude Opus 4.7 and the Claude Code harness: a four-point elegance check on every non-trivial change, "prefer fresh context over compaction" recovery from `tasks/` files, and consolidated Claude Code primitives (slash commands, skills, subagents, hooks) in a single reference section.
 
 ## What's Included
 
@@ -62,7 +62,7 @@ The skill covers:
 - **Architecture** — ADRs for significant decisions
 - **Task management** — todo tracking, Definition of Done (with red-before-green and per-AC coverage gates), lessons learned
 - **Prompt engineering** — prompt structure, patterns, anti-patterns
-- **Claude Code tooling** — subagents (including a `tdd-enforcer` example), custom agents, hooks, skills, slash commands
+- **Claude Code primitives** — slash commands, skills, subagents (`build-validator`, `code-simplifier`, `security-reviewer`, `tdd-enforcer`, `verify-app`), and hooks consolidated in Part 9
 
 ### Slash Commands (on demand)
 
@@ -126,14 +126,14 @@ Replace the formatter and test/type-check commands with your project's equivalen
 
 ### Add custom agents
 
-Create reusable agent definitions in `.claude/agents/`. The skill includes a `tdd-enforcer` example that verifies red/green cycles were followed on a changeset.
+Create reusable agent definitions in `.claude/agents/`. The skill names a standard set worth checking into your repo: `build-validator`, `code-simplifier`, `security-reviewer`, `tdd-enforcer`, and `verify-app`.
 
 ```bash
 mkdir -p .claude/agents
 ```
 
-See the Subagents section of the skill for the full example and best practices.
+See Part 9 (Claude Code Primitives) → Subagents in the skill for guidance on tool permissions, model selection, and `isolation: worktree` for write-capable agents.
 
 ## Version
 
-Current: **10.1** | Author: Vinny Carpenter
+Current: **14.0** | Author: Vinny Carpenter
