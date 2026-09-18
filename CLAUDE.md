@@ -8,17 +8,18 @@ A Claude Code skill package that provides comprehensive coding standards and age
 
 ## Repository Structure
 
-- `.claude/skills/coding-standards/SKILL.md` — The skill definition (YAML frontmatter + full standards). This is auto-loaded by Claude Code when installed in a project.
-- `.claude/commands/qspec.md` — `/qspec` slash command: generates a feature spec.
-- `.claude/commands/qcheck.md` — `/qcheck` slash command: skeptical staff engineer review.
-- `coding-standards.md` — Standalone reference copy of the same content as SKILL.md, without YAML frontmatter. Kept in sync manually.
-- `README.md` — Installation and usage instructions for consumers.
+- `.claude/skills/coding-standards/SKILL.md`: the skill definition (YAML frontmatter + full standards). This is auto-loaded by Claude Code when installed in a project.
+- `.claude/commands/qspec.md`: the `/qspec` slash command, which generates a feature spec.
+- `.claude/commands/tdd.md`: the `/tdd` slash command, which starts a red/green/refactor cycle.
+- `.claude/commands/qcheck.md`: the `/qcheck` slash command, a skeptical staff engineer review.
+- `coding-standards.md`: standalone reference copy of the same content as SKILL.md, without YAML frontmatter. Kept in sync manually.
+- `README.md`: installation and usage instructions for consumers.
 
 ## Key Conventions
 
 - **SKILL.md and coding-standards.md must stay in sync.** SKILL.md has YAML frontmatter (`name`, `description`, `version`, `author`); `coding-standards.md` is the same body content without it. When editing standards, update both files.
 - **Version is tracked in two places:** the `version` field in SKILL.md frontmatter and the "Version" line at the bottom of README.md. Bump both when releasing.
-- The document is organized into 10 numbered Parts. Preserve this structure when adding or modifying sections.
+- The document is organized into eight numbered Parts, Part 0 through Part 7. Preserve this structure when adding or modifying sections.
 - Conventional commit messages are used (e.g., `docs: ...`, `feat: ...`).
 
 ## Git Workflow

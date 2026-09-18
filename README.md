@@ -1,6 +1,6 @@
 # Coding Standards Skill for Claude Code
 
-Comprehensive code standards and agentic behavior guidelines, packaged as a Claude Code skill with companion slash commands. Version 14.0 is tuned for Claude Opus 4.7 and the Claude Code harness: a four-point elegance check on every non-trivial change, "prefer fresh context over compaction" recovery from `tasks/` files, and consolidated Claude Code primitives (slash commands, skills, subagents, hooks) in a single reference section.
+Comprehensive code standards and agentic behavior guidelines, packaged as a Claude Code skill with companion slash commands. Version 18.0 reorganizes the standards into loading layers. Judgment rules stay in a short global `CLAUDE.md`, process text loads on demand from commands and skills, and mechanical rules move to hooks and lint config. The release also adds task tiers, a hard-to-reverse action list, a comprehension gate for non-trivial changes, and tiered exit checklists.
 
 ## What's Included
 
@@ -10,9 +10,9 @@ Comprehensive code standards and agentic behavior guidelines, packaged as a Clau
     coding-standards/
       SKILL.md            # The skill (auto-loaded by Claude Code)
   commands/
-    qspec.md              # /qspec  — generate a feature spec + test stubs
-    qcheck.md             # /qcheck — skeptical staff engineer review
-    tdd.md                # /tdd    — start a red/green/refactor cycle
+    qspec.md              # /qspec: generate a feature spec + test stubs
+    qcheck.md             # /qcheck: skeptical staff engineer review
+    tdd.md                # /tdd: start a red/green/refactor cycle
 coding-standards.md       # Standalone reference copy (same content, no frontmatter)
 ```
 
@@ -50,37 +50,39 @@ git clone --depth 1 https://github.com/vscarpenter/coding-standards-skill.git /t
 
 ### The Skill (automatic)
 
-Once installed, the coding-standards skill triggers automatically whenever Claude Code is doing development work. There is nothing to invoke — Claude loads the skill and follows its guidelines for every coding task.
+Once installed, the coding-standards skill triggers automatically whenever Claude Code is doing development work. There is nothing to invoke. Claude loads the skill and follows its guidelines for every coding task.
 
 The skill covers:
-- **Agentic behavior** — codebase orientation, spec-driven development, verification-first workflow, parallel tool execution, bash-first multi-step ops, outcome-defined task exits, session handoff, self-improvement loop, context management
-- **TDD as default** — red/green/refactor is mandatory for non-trivial logic; acceptance criteria become the first failing tests
-- **Code quality** — naming, types, structure, performance, accessibility, logging, dependency management
-- **Testing & errors** — test isolation, typed error handling, behavior-based test names, Arrange-Act-Assert
-- **Security & supply chain** — input validation, parameterized queries, least privilege, auditing AI-installed dependencies, lockfile discipline
-- **Git workflow** — conventional commits, branch naming, PR standards, code review norms
-- **Architecture** — ADRs for significant decisions
-- **Task management** — todo tracking, Definition of Done (with red-before-green and per-AC coverage gates), lessons learned
-- **Prompt engineering** — prompt structure, patterns, anti-patterns
-- **Claude Code primitives** — slash commands, skills, subagents (`build-validator`, `code-simplifier`, `security-reviewer`, `tdd-enforcer`, `verify-app`), and hooks consolidated in Part 9
+- **Runtime loading architecture** (Part 0): which rules load every session, on demand, or through tooling, plus the precedence order when directives conflict
+- **The agentic lifecycle** (Part 1): codebase orientation, task tiers, the unknowns interview, spec-driven development, scope discipline, a deviations ledger with halt conditions, hard-to-reverse action safety, session handoff, and a comprehension gate for non-trivial work
+- **Non-negotiable invariants** (Part 2): simplicity, dependency discipline, security, error handling, and red/green/refactor
+- **Mechanical rules** (Part 3): formatting, commit format, size limits, type annotations, and coverage, each mapped to the tool that enforces it
+- **Architecture** (Part 4): ADRs for decisions that are hard to reverse
+- **Prompt engineering** (Part 5): prompt structure, canonical prompt sources, and anti-patterns
+- **Claude Code primitives** (Part 6): slash commands, skills, subagents, agent teams, and hooks
+- **Tiered exit checklists** (Part 7): what must be true before a task is done, by tier
 
 ### Slash Commands (on demand)
 
-**`/qspec`** — Generate a spec for a feature before writing any code. Produces goal, inputs/outputs, constraints, edge cases, acceptance criteria, **and empty test stubs** that map to each criterion. Saves to `tasks/spec.md` and waits for approval before implementing.
+**`/qspec`** generates a spec before writing any code. It runs a short unknowns interview (up to three questions, highest blast radius first), then produces goal, inputs/outputs, constraints, edge cases, out of scope, acceptance criteria, and empty test stubs that map to each criterion. The spec saves to `tasks/spec.md`, and Claude waits for approval before implementing.
 
-**`/tdd`** — Start a red/green/refactor cycle. Claude writes a failing test first, confirms it fails for the right reason, then writes the minimal implementation to make it pass, then refactors.
+**`/tdd`** starts a red/green/refactor cycle. Claude writes a failing test first, confirms it fails for the right reason, then writes the minimal implementation to make it pass, then refactors.
 
-**`/qcheck`** — Skeptical staff engineer review of all changed files. Checks tests, error handling, types, observability, security, and the Definition of Done. Also flags logic that appears to have been implemented before its tests were written.
+**`/qcheck`** runs a skeptical staff engineer review of all changed files. It checks tests, error handling, types, observability, security, acceptance-criteria coverage, and the exit checklist for the task's tier. Every finding comes back tagged BLOCKING, IMPORTANT, or NIT.
 
 ## Customizing
 
+### Keep the core layer short
+
+Part 0 of the skill describes a core layer: the judgment rules Claude must hold in every session, kept under 600 words in the body of your global `~/.claude/CLAUDE.md`. The standards refer to that file as `CLAUDE-core.md`. Everything else loads on demand through commands and skills, or a hook enforces it. When a tool can check a rule, move it to a hook instead of adding it to the core layer.
+
 ### Add project-specific rules
 
-Add a `CLAUDE.md` to your project root for rules specific to your codebase. The skill's Self-Improvement Loop prompts Claude to update `CLAUDE.md` after every correction, so it grows organically over time.
+Add a `CLAUDE.md` to your project root for rules specific to your codebase. The skill's self-improvement loop has Claude distill each session's implementation notes into `tasks/lessons.md` or `CLAUDE.md`, so the file grows organically over time.
 
 ### Configure hooks
 
-The skill recommends formatting, context-handoff, and verification-gate hooks. Add these to your `.claude/settings.json`:
+The skill expects hooks, not prose, to enforce mechanical rules. Hooks receive event data as JSON on stdin, so read the file path with `jq` rather than an environment variable. Add these to your `.claude/settings.json`:
 
 ```json
 {
@@ -91,14 +93,14 @@ The skill recommends formatting, context-handoff, and verification-gate hooks. A
         "hooks": [
           {
             "type": "command",
-            "command": "npx biome format --write $CLAUDE_FILE_PATH || true"
+            "command": "file=$(jq -r '.tool_input.file_path // empty'); [ -n \"$file\" ] && npx biome format --write \"$file\" || true"
           }
         ]
       }
     ],
-    "PostCompact": [
+    "SessionStart": [
       {
-        "matcher": "",
+        "matcher": "compact",
         "hooks": [
           {
             "type": "command",
@@ -109,11 +111,10 @@ The skill recommends formatting, context-handoff, and verification-gate hooks. A
     ],
     "Stop": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "npm test -- --passWithNoTests && npx tsc --noEmit || exit 1"
+            "command": "npm test -- --passWithNoTests && npx tsc --noEmit || exit 2"
           }
         ]
       }
@@ -122,18 +123,16 @@ The skill recommends formatting, context-handoff, and verification-gate hooks. A
 }
 ```
 
-Replace the formatter and test/type-check commands with your project's equivalents (`prettier`, `black`, `gofmt`, `pytest`, `go test`, etc.). The `Stop` hook is the verification gate that blocks Claude from marking a task complete until tests and type checks pass.
+Replace the formatter and test/type-check commands with your project's equivalents (`prettier`, `black`, `gofmt`, `pytest`, `go test`, etc.). The `SessionStart` hook re-injects your task files after a compaction. The `Stop` hook is the verification gate that blocks Claude from finishing until tests and type checks pass; exit code 2 is what makes a hook block. Commit message format is a git concern rather than a Claude Code hook, so enforce it with commitlint in a `commit-msg` git hook.
 
 ### Add custom agents
 
-Create reusable agent definitions in `.claude/agents/`. The skill names a standard set worth checking into your repo: `build-validator`, `code-simplifier`, `security-reviewer`, `tdd-enforcer`, and `verify-app`.
+Create reusable agent definitions in `.claude/agents/` for work you delegate more than once: parallel reads, fan-out research, or isolated implementation. Read-only agents can run on `haiku`. Agents that write files should use `sonnet` or `opus` with `isolation: worktree`. See Part 6 (Claude Code Primitives) in the skill for the full guidance.
 
-```bash
-mkdir -p .claude/agents
-```
+### Standing approval for push and PR workflows
 
-See Part 9 (Claude Code Primitives) → Subagents in the skill for guidance on tool permissions, model selection, and `isolation: worktree` for write-capable agents.
+The hard-to-reverse action list in Part 1 requires confirmation before Claude pushes code or opens a PR. A user-invoked workflow that includes those steps carries approval for that run. The standards name the author's git-flow-automation skill as the example; substitute your own commit-push-PR command.
 
 ## Version
 
-Current: **14.0** | Author: Vinny Carpenter
+Current: **18.0** | Author: Vinny Carpenter
