@@ -1,9 +1,9 @@
-# Code Standards & Agentic Guidance v14.0
+# Code Standards & Agentic Guidance v15.0
 
 
-**Purpose.** Directives governing how LLMs approach complex, multi-step development tasks. Optimized for Claude Opus 4.7 and the Claude Code harness. Every directive applies to every coding session.
+**Purpose.** Directives governing how LLMs approach complex, multi-step development tasks. Optimized for the Claude Code harness and model-neutral: nothing here depends on a specific Claude model. Every directive applies to every coding session.
 
-**How to use this file.** This is the full reference. For runtime use, load only what's needed: a short global `~/.claude/CLAUDE.md` for universal rules, a per-project `CLAUDE.md` for stack and patterns, and this document as a skill at `.claude/skills/coding-standards/SKILL.md` for on-demand reference. Enforce mechanical rules with hooks, not prose.
+**How to use this file.** This is the full reference. For runtime use, load only what's needed: a short global `~/.claude/CLAUDE.md` for universal rules, a per-project `CLAUDE.md` for stack and patterns, and this document as a skill at `.claude/skills/coding-standards/SKILL.md` for on-demand reference. Path-scoped conventions (frontend versus infra, for example) belong in `.claude/rules/*.md`, and `CLAUDE.md` can pull in shared files with `@path/to/file` imports instead of duplicating them. Enforce mechanical rules with hooks, not prose.
 
 ---
 
@@ -18,6 +18,8 @@
 5. Match existing code style exactly, even if it differs from these standards.
 
 **Resumed sessions:** Read CLAUDE.md → `tasks/lessons.md` → `tasks/todo.md` → check git log (last 3-5 commits). Do not ask the user to re-explain context captured in these files.
+
+**Where state lives.** Claude Code's auto memory (`~/.claude/projects/<project>/memory/`) is per-user and per-machine. It is Claude's private notebook, and it never reaches a teammate or a CI agent. Files under `tasks/` are committed, so every session and every person can resume from them. Keep both: auto memory for personal working notes, `tasks/` for anything another session must pick up. The built-in task list tracks progress inside a session; `tasks/todo.md` is the durable copy that survives it.
 
 **Rule:** The existing codebase is the primary style guide. These standards apply to greenfield code or explicit refactoring.
 
@@ -72,7 +74,7 @@ Claude executes tool calls in parallel by default. Reserve sequential execution 
 
 **Critical:** If you find yourself 80% through context with major uncommitted work, stop adding features and commit immediately.
 
-**Prefer fresh context over compaction.** State lives in `tasks/`. Resume by reading those files (CLAUDE.md, `tasks/todo.md`, `tasks/lessons.md`, recent git log), not by summarizing chat history. Opus 4.7 is effective at discovering state from the local filesystem; lean on that.
+**Prefer fresh context over compaction.** State lives in `tasks/`. Resume by reading those files (CLAUDE.md, `tasks/todo.md`, `tasks/lessons.md`, recent git log), not by summarizing chat history. Current models are effective at discovering state from the local filesystem; lean on that. Compaction also drops the skill listing (only skills already invoked survive), which is one more reason a fresh session that reads `tasks/` beats a compacted one.
 
 Every multi-step task must have a stated "done" condition the model can recognize autonomously. Define outcomes, not process.
 
@@ -94,8 +96,9 @@ After any correction from the user, capture the pattern in `tasks/lessons.md` im
 
 | File | Purpose |
 |---|---|
-| `tasks/lessons.md` | Project-specific learnings: patterns, gotchas, context that matters for this codebase. |
+| `tasks/lessons.md` | Project-specific learnings: patterns, gotchas, context that matters for this codebase. Committed and shared. |
 | `CLAUDE.md` | Persistent behavioral rules that apply across sessions and projects. |
+| Auto memory | Claude's own notes from corrections and preferences. Per-user, not committed. Review it with `/memory`; promote anything a teammate needs into `tasks/lessons.md` or `CLAUDE.md`. |
 
 **Rule:** Corrections are learning contracts. Every mistake that recurs after being corrected once is a process failure, not a knowledge gap.
 
@@ -128,7 +131,7 @@ After any correction from the user, capture the pattern in `tasks/lessons.md` im
 3. Close the loop autonomously. Run verification without being prompted.
 4. Invest in reusable verification. Building a fast feedback loop is higher priority than the feature.
 
-**Verification surfaces in this environment:** Playwright MCP for UI, GitHub MCP for repo state, aws-core MCP for cloud verification, Biome for format/lint, project test runner for behavior. Use them.
+**Verification surfaces in this environment:** the bundled `/verify` and `/run` skills to exercise the running app, Playwright MCP for UI, GitHub MCP for repo state, aws-core MCP for cloud verification, Biome for format/lint, project test runner for behavior. Use them.
 
 **Rule:** Code without a verification method is a guess. If you cannot prove the work is correct, the task is not done.
 
@@ -396,7 +399,7 @@ Confirm before proceeding with implementation.
 - **Implicit context:** Assuming the model knows your project structure or prior decisions.
 - **Conversational framing on operational tasks:** "Could you please help me understand..." Write direct commands instead.
 - **No exit conditions:** "Keep checking until you find the issue" loops indefinitely. Define outcomes.
-- **Implicit "above and beyond":** Opus 4.7 is more literal than older models. If you want a fully-featured implementation, say so explicitly. Default behavior is to do exactly what was asked.
+- **Implicit "above and beyond":** Current models do what was asked, not what you meant. If you want a fully-featured implementation, say so explicitly. Default behavior is to do exactly what was asked.
 - **Severity self-censorship in reviews:** Telling the model to "be conservative" or "only flag high-severity" causes it to investigate fully but report less. Ask for all findings, tagged by severity.
 - **Skipping TDD in the prompt:** Not specifying red/green/refactor invites code-first, tests-after.
 
@@ -406,52 +409,67 @@ Confirm before proceeding with implementation.
 
 ## Part 9: Claude Code Primitives
 
-Reusable building blocks: slash commands, skills, subagents, and hooks. If you do something more than once a day, it should be one of these — not a prompt you retype.
-
-### Slash Commands (`.claude/commands/`)
-
-Short, repeatable actions checked into git. Executable with a single invocation. Can inline Bash for pre-computed context.
-
-*Examples:* commit-push-PR, run tests, format code, generate changelog.
-
-This document ships with: `/qspec` (generate a spec), `/qcheck` (skeptical code review), `/tdd` (start a red/green/refactor cycle).
+Reusable building blocks: skills, subagents, and hooks. If you do something more than once a day, it should be one of these — not a prompt you retype.
 
 ### Skills (`.claude/skills/`)
 
-Complex multi-step workflows with domain knowledge or conditional logic. SKILL.md describes when to fire and what to do. Progressive disclosure: skills are folders with `references/`, `scripts/`, `examples/` subdirectories.
+Skills are the unit of reuse. A skill is a folder with a `SKILL.md` (frontmatter plus instructions) and optional `references/`, `scripts/`, and `examples/` subdirectories for progressive disclosure. Every skill is also a slash command: `.claude/skills/qcheck/SKILL.md` is `/qcheck`. The older `.claude/commands/*.md` format still works, but prefer a skill for anything new.
 
-*Examples:* analytics queries, incident response, migration playbooks.
+Two kinds of skill, controlled by frontmatter:
+- **Model-invoked** (default). Claude loads it when the description matches the task. The description is a trigger, not a summary. Write it for the model: "when should I fire?"
+- **User-invoked** (`disable-model-invocation: true`). Fires only when you type `/name`. Use it for actions with side effects or a pause-for-approval step. These stay out of the skill listing, so they cost no context until used.
+
+This document ships with three user-invoked skills: `/qspec` (generate a spec), `/qcheck` (skeptical code review), `/tdd` (start a red/green/refactor cycle).
+
+**Bundled skills.** Claude Code ships its own, including `/code-review`, `/verify`, `/run`, and `/debug`. They complement the house skills rather than replace them. `/code-review` hunts for bugs in a diff; `/qcheck` grades the diff against these standards and the Definition of Done. Run both before opening a PR. `/verify` and `/run` exercise the running app and are the fastest path to the "close the loop" rule in Part 1.
 
 **Skill design rules:**
-- Skill description is a trigger, not a summary. Write it for the model: "when should I fire?"
 - Don't state the obvious. Focus on what pushes Claude out of default behavior.
 - Don't railroad with prescriptive step-by-step instructions. Give goals and constraints.
 - Include scripts and libraries so Claude composes rather than reconstructs boilerplate.
 - Build a Gotchas section in every skill. Add Claude's failure points over time.
+- Keep descriptions short. The skill listing has a fixed budget (about 1% of the context window), and long descriptions are truncated first. Run `/skill-doctor` to see what each skill costs and how often it fires.
 
 ### Subagents (`.claude/agents/`)
 
-Opus 4.7 has strong native subagent orchestration. It will delegate appropriately without explicit instruction. Provide well-defined subagent tools and let the model choose.
+Current models orchestrate subagents natively and delegate appropriately without explicit instruction. Provide well-defined subagent files and let the model choose.
 
 When you do want to constrain behavior:
 - Subagents return concise summaries, not raw output.
 - Read-only tools for research subagents. Write access only for implementation subagents.
 - Skip subagents for tasks under 3 tool calls. Overhead not worth it.
-- Set `isolation: worktree` on agents that modify files.
-- Use `model: haiku` for read-only analysis. `sonnet/opus` for architecture reasoning.
+- Set `isolation: worktree` on agents whose edits you want to review as a branch before they land.
+- Use `model: haiku` for read-only analysis. `sonnet`, `opus`, or `fable` for architecture reasoning. `inherit` follows the session.
+- Preload a skill with `skills: [coding-standards]` when the agent must grade work against it.
+- Give long-lived reviewers `memory: project` so they accumulate codebase-specific findings across sessions.
 
-**Standard agent files:** `build-validator`, `code-simplifier`, `security-reviewer`, `tdd-enforcer`, `verify-app`.
+**Standard agent files (shipped in this repo under `.claude/agents/`):** `build-validator`, `code-simplifier`, `security-reviewer`, `tdd-enforcer`, `verify-app`.
 
 ### Hooks
 
 Hooks enforce mechanically what prose enforces by hope. Every rule moved to a hook is one fewer instruction competing for attention in the context window.
 
+Three rules of hook mechanics that are easy to get wrong:
+1. **Exit 2 blocks. Exit 1 does not.** Exit 1 is a non-blocking error: Claude proceeds and never sees the message. A verification gate that ends in `|| exit 1` is decoration.
+2. **Hooks read their input from stdin JSON,** not from environment variables. The edited file is `jq -r '.tool_input.file_path'`. The only path variables Claude Code exports are `CLAUDE_PROJECT_DIR`, `CLAUDE_PLUGIN_ROOT`, and `CLAUDE_PLUGIN_DATA`.
+3. **Only some events feed stdout back to Claude.** `SessionStart` and `UserPromptSubmit` do. `PostCompact` does not, so re-injecting `tasks/` after compaction is a `SessionStart` hook with matcher `compact`.
+
 ```
-PostToolUse (auto-format):    npx biome format --write $CLAUDE_FILE_PATH || true
-PostToolUse (audit deps):     npm audit --audit-level=high || exit 1
-PostCompact (re-inject):      cat tasks/todo.md tasks/lessons.md
-Stop (verification gate):     npm test && npx tsc --noEmit || exit 1
+PostToolUse  (auto-format; matcher Write|Edit)
+  f=$(jq -r '.tool_input.file_path // empty'); [ -n "$f" ] && npx biome format --write "$f"; exit 0
+
+PostToolUse  (audit deps; matcher Bash, if "Bash(npm install *)")
+  npm audit --audit-level=high || { echo "npm audit found high-severity issues" >&2; exit 2; }
+
+SessionStart (re-inject after compaction; matcher compact)
+  cat tasks/todo.md tasks/lessons.md 2>/dev/null; exit 0
+
+Stop         (verification gate)
+  jq -e '.stop_hook_active' >/dev/null && exit 0
+  npm test && npx tsc --noEmit || { echo "Tests or type check failed. Fix before stopping." >&2; exit 2; }
 ```
+
+The `stop_hook_active` guard keeps the Stop gate from looping when Claude cannot make tests pass. Claude Code also caps consecutive blocks at 8.
 
 **Rule:** If a standard can be enforced by a hook, it should be. Human discipline is a backup, not the primary mechanism.
 
@@ -501,9 +519,11 @@ Stop (verification gate):     npm test && npx tsc --noEmit || exit 1
 **Workflow & discipline**
 - Ad-hoc subagent prompts for repeated patterns (use `.claude/agents/`)
 - Standards enforced by discipline when a hook could automate
+- Hooks that exit 1 and expect to block
+- Team-critical lessons living only in auto memory instead of `tasks/lessons.md` or `CLAUDE.md`
 
 ---
 
 > "Code should be safe to modify, easy to reason about, and boring to maintain. When in doubt, simplify."
 >
-> Vinny Carpenter — Document Version 14.0
+> Vinny Carpenter — Document Version 15.0
