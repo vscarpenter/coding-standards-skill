@@ -1,6 +1,6 @@
 ---
 name: qcheck
-description: Review all changed files as a skeptical staff engineer against the coding-standards skill and the Definition of Done. Returns findings tagged by severity. Does not rewrite code.
+description: Review all changed files as a skeptical staff engineer against the coding-standards skill and the exit checklist for the task's tier. Returns findings tagged by severity. Does not rewrite code.
 disable-model-invocation: true
 ---
 Review all changed files as a skeptical staff engineer. Apply the full coding-standards skill.
@@ -19,8 +19,8 @@ For every major code change, evaluate:
 8. Are types properly annotated on all function signatures?
 9. Is logging/observability adequate for production?
 10. Was a verification method defined and does it pass?
-11. Does this pass the four-point elegance check?
-12. Does this meet the Definition of Done?
+11. Does every spec acceptance criterion have a corresponding passing test?
+12. Does this pass the exit checklist for its tier (Part 7 of the skill)?
 
 Report ALL findings. Tag each as BLOCKING, IMPORTANT, or NIT. Do not filter or self-censor based on perceived severity. For each finding give the file and line, what is wrong, and the smallest fix.
 

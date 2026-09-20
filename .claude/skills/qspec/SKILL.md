@@ -19,6 +19,8 @@ Include:
 
 If the feature description is ambiguous, list the interpretations and ask which is intended before writing the spec.
 
+Before requesting approval, run the unknowns interview: ask up to three questions per turn, highest blast radius first (data models, architecture, public interfaces). Fold the answers into the spec.
+
 Save the spec to `tasks/spec.md`.
 
 Do not write any code. Wait for spec approval before proceeding.

@@ -8,20 +8,20 @@ A Claude Code skill package that provides comprehensive coding standards and age
 
 ## Repository Structure
 
-- `.claude/skills/coding-standards/SKILL.md` — The skill definition (YAML frontmatter + full standards). Model-invoked: Claude loads it when development work starts.
-- `.claude/skills/qspec/SKILL.md` — `/qspec` user-invoked skill: generates a feature spec.
-- `.claude/skills/qcheck/SKILL.md` — `/qcheck` user-invoked skill: skeptical staff engineer review.
-- `.claude/skills/tdd/SKILL.md` — `/tdd` user-invoked skill: starts a red/green/refactor cycle.
-- `.claude/agents/*.md` — The five standard subagents the skill references (`build-validator`, `code-simplifier`, `security-reviewer`, `tdd-enforcer`, `verify-app`).
-- `coding-standards.md` — Standalone reference copy of the same content as SKILL.md, without YAML frontmatter. Kept in sync manually.
-- `README.md` — Installation and usage instructions for consumers.
+- `.claude/skills/coding-standards/SKILL.md`: the skill definition (YAML frontmatter + full standards). Claude loads it when development work starts.
+- `.claude/skills/qspec/SKILL.md`: the `/qspec` user-invoked skill, which generates a feature spec.
+- `.claude/skills/qcheck/SKILL.md`: the `/qcheck` user-invoked skill, a skeptical staff engineer review.
+- `.claude/skills/tdd/SKILL.md`: the `/tdd` user-invoked skill, which starts a red/green/refactor cycle.
+- `.claude/agents/*.md`: the five standard subagents (`build-validator`, `code-simplifier`, `security-reviewer`, `tdd-enforcer`, `verify-app`).
+- `coding-standards.md`: standalone reference copy of the same content as SKILL.md, without YAML frontmatter. Kept in sync manually.
+- `README.md`: installation and usage instructions for consumers.
 
 ## Key Conventions
 
 - **SKILL.md and coding-standards.md must stay in sync.** SKILL.md has YAML frontmatter (`name`, `description`, `metadata.version`, `metadata.author`); `coding-standards.md` is the same body content without it. When editing standards, update both files. Regenerate with:
   `awk 'BEGIN{c=0} c<2 && /^---$/{c++; next} c>=2' .claude/skills/coding-standards/SKILL.md > coding-standards.md`
-- **Version is tracked in four places:** `metadata.version` in SKILL.md frontmatter, the `v15.0` in the SKILL.md H1, the "Document Version" line at the bottom of the standards, and the "Version" line at the bottom of README.md. Bump all when releasing.
-- The document is organized into 10 numbered Parts. Preserve this structure when adding or modifying sections.
+- **Version is tracked in four places:** `metadata.version` in SKILL.md frontmatter, the `v18.0` in the SKILL.md H1, the "Document Version" line at the bottom of the standards, and the "Version" line at the bottom of README.md. Bump all when releasing.
+- The document is organized into eight numbered Parts, Part 0 through Part 7. Preserve this structure when adding or modifying sections.
 - **Claims about Claude Code mechanics (hook events, exit codes, frontmatter fields, bundled skills) must be checked against the current docs at code.claude.com/docs before they ship.** v14 shipped hooks that did not work because of unverified assumptions.
 - Keep the standards model-neutral. Do not name a specific Claude model in a directive.
 - The `/qspec`, `/qcheck`, and `/tdd` skills use `disable-model-invocation: true`. They are user-invoked only.
