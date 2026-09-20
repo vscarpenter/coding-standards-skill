@@ -1,3 +1,9 @@
+---
+name: tdd
+description: Start a red/green/refactor cycle for one behavior, pausing for approval after the failing test and before the refactor. Follows the TDD protocol from the coding-standards skill.
+disable-model-invocation: true
+argument-hint: <behavior to implement>
+---
 Start a red/green/refactor cycle for the behavior described in the arguments. Follow the TDD protocol from the coding-standards skill.
 
 Behavior: $ARGUMENTS
@@ -13,4 +19,5 @@ Execute the cycle strictly in order:
 Rules:
 - Do not write implementation code before the test exists and has been confirmed to fail.
 - Do not bundle multiple behaviors into one cycle.
+- Solve the problem generally. Do not hard-code to the test cases.
 - If you cannot write a failing test first, stop and say the requirement is unclear.

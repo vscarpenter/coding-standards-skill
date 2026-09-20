@@ -8,18 +8,23 @@ A Claude Code skill package that provides comprehensive coding standards and age
 
 ## Repository Structure
 
-- `.claude/skills/coding-standards/SKILL.md`: the skill definition (YAML frontmatter + full standards). This is auto-loaded by Claude Code when installed in a project.
-- `.claude/commands/qspec.md`: the `/qspec` slash command, which generates a feature spec.
-- `.claude/commands/tdd.md`: the `/tdd` slash command, which starts a red/green/refactor cycle.
-- `.claude/commands/qcheck.md`: the `/qcheck` slash command, a skeptical staff engineer review.
+- `.claude/skills/coding-standards/SKILL.md`: the skill definition (YAML frontmatter + full standards). Claude loads it when development work starts.
+- `.claude/skills/qspec/SKILL.md`: the `/qspec` user-invoked skill, which generates a feature spec.
+- `.claude/skills/qcheck/SKILL.md`: the `/qcheck` user-invoked skill, a skeptical staff engineer review.
+- `.claude/skills/tdd/SKILL.md`: the `/tdd` user-invoked skill, which starts a red/green/refactor cycle.
+- `.claude/agents/*.md`: the five standard subagents (`build-validator`, `code-simplifier`, `security-reviewer`, `tdd-enforcer`, `verify-app`).
 - `coding-standards.md`: standalone reference copy of the same content as SKILL.md, without YAML frontmatter. Kept in sync manually.
 - `README.md`: installation and usage instructions for consumers.
 
 ## Key Conventions
 
-- **SKILL.md and coding-standards.md must stay in sync.** SKILL.md has YAML frontmatter (`name`, `description`, `version`, `author`); `coding-standards.md` is the same body content without it. When editing standards, update both files.
-- **Version is tracked in two places:** the `version` field in SKILL.md frontmatter and the "Version" line at the bottom of README.md. Bump both when releasing.
+- **SKILL.md and coding-standards.md must stay in sync.** SKILL.md has YAML frontmatter (`name`, `description`, `metadata.version`, `metadata.author`); `coding-standards.md` is the same body content without it. When editing standards, update both files. Regenerate with:
+  `awk 'BEGIN{c=0} c<2 && /^---$/{c++; next} c>=2' .claude/skills/coding-standards/SKILL.md > coding-standards.md`
+- **Version is tracked in four places:** `metadata.version` in SKILL.md frontmatter, the `v18.0` in the SKILL.md H1, the "Document Version" line at the bottom of the standards, and the "Version" line at the bottom of README.md. Bump all when releasing.
 - The document is organized into eight numbered Parts, Part 0 through Part 7. Preserve this structure when adding or modifying sections.
+- **Claims about Claude Code mechanics (hook events, exit codes, frontmatter fields, bundled skills) must be checked against the current docs at code.claude.com/docs before they ship.** v14 shipped hooks that did not work because of unverified assumptions.
+- Keep the standards model-neutral. Do not name a specific Claude model in a directive.
+- The `/qspec`, `/qcheck`, and `/tdd` skills use `disable-model-invocation: true`. They are user-invoked only.
 - Conventional commit messages are used (e.g., `docs: ...`, `feat: ...`).
 
 ## Git Workflow
@@ -30,13 +35,12 @@ A Claude Code skill package that provides comprehensive coding standards and age
 - **Linear history enforced.** No merge commits in the history.
 - **Conversation resolution required.** All review threads must be resolved before merging.
 - **Branches auto-delete** after merge.
-- Conventional commit messages are used (e.g., `docs: ...`, `feat: ...`).
 
 ## Editing Workflow
 
 Since this is a docs-only repo, there are no build or lint commands. The workflow is:
 1. Create a feature branch (`docs/...`, `feat/...`, etc.).
 2. Edit the standards in SKILL.md (the source of truth with frontmatter).
-3. Mirror the body content to `coding-standards.md` (no frontmatter).
+3. Regenerate `coding-standards.md` with the awk command above and confirm `diff` is empty.
 4. Update README.md if installation steps, usage, or version changed.
 5. Open a PR for review — direct pushes to main are not allowed.

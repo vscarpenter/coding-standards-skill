@@ -1,16 +1,15 @@
 ---
 name: coding-standards
 description: |
-  Comprehensive code standards and agentic behavior guidelines for AI-assisted development.
-  Use this skill for ALL coding tasks. It governs how Claude approaches implementation, testing,
-  verification, code review, git workflow, and task management. Trigger whenever the user asks
-  Claude to write code, fix bugs, implement features, refactor, review PRs, create specs, plan
-  architecture, or do any software development work. Also trigger when the user mentions
-  "coding standards", "code quality", "best practices", "exit checklist", "Definition of Done",
-  "code review", or asks Claude to follow team conventions. This skill should be the baseline
-  for every coding session: if code is being written, this skill applies.
-version: 18.0.0
-author: Vinny Carpenter
+  Code standards and agentic behavior guidelines for AI-assisted development: spec-first,
+  TDD, verification, code review, git workflow, session handoff, and Claude Code primitives
+  (skills, subagents, hooks). Use for any software development work: writing code, fixing
+  bugs, implementing features, refactoring, reviewing PRs, writing specs, or planning
+  architecture. Also use when the user mentions coding standards, code quality, best
+  practices, exit checklists, Definition of Done, or team conventions.
+metadata:
+  version: 18.0.0
+  author: Vinny Carpenter
 ---
 # Code Standards & Agentic Guidance v18.0
 
